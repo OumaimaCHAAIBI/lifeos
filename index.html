@@ -6,6 +6,13 @@
 <title>Life OS</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#0f0f10">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Life OS">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -150,6 +157,7 @@ const SUPABASE_URL = 'https://bachttqtazhilidybefg.supabase.co';
 const SUPABASE_KEY = 'sb_publishable__u7iPF8Thopo0WKXNgYyEw_h_aYWX2W';
 </script>
 <!-- ══════════════════════════════ -->
+
 
 <!-- EXPORT MODAL -->
 <div id="export-modal" onclick="if(event.target===this)closeExport()">
@@ -552,6 +560,15 @@ async function copyExport(){try{await navigator.clipboard.writeText(document.get
 // PROMPTS
 function renderPrompts(){const prompts=[['📊','Analyze my week — what patterns do you see?'],['📱','Where am I wasting the most time?'],['💭','How has my mood been and what might be affecting it?'],['🎯','What should I focus on for the next 3 days?'],['💰','Give me a budget breakdown and advice'],['🌴','Help me plan my Marrakech trip next Thursday'],['🌙','Plan my ftour menu for the rest of Ramadan'],['📈','What habits should I build based on my data?']];document.getElementById('prompt-grid').innerHTML=prompts.map(([e,t])=>`<div style="background:var(--bg3);border-radius:var(--r2);padding:12px;font-size:13px;color:var(--text2);cursor:pointer;border:1px solid var(--border);transition:border .15s" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'" onclick="copyPrompt('${t.replace(/'/g,"\\'")}')"><span style="margin-right:6px">${e}</span>${t}</div>`).join('');}
 async function copyPrompt(text){try{await navigator.clipboard.writeText(text);alert('Copied! Paste it in Claude after your data export.');}catch(e){alert('Copy this:\n\n'+text);}}
+</script>
+<script>
+if("serviceWorker" in navigator){
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js")
+      .then(r => console.log("SW registered"))
+      .catch(e => console.log("SW error", e));
+  });
+}
 </script>
 </body>
 </html>
