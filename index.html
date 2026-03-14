@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Life OS</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f10;--bg2:#1a1a1c;--bg3:#222226;--bg4:#2a2a2e;
+  --border:#333338;--border2:#444449;
+  --text:#f0efe8;--text2:#9b9a94;--text3:#5a5a5e;
+  --accent:#c8a96e;--accent2:#e8c98e;
+  --teal:#4ecdc4;--coral:#ff6b6b;--purple:#a78bfa;--green:#6bcb77;
+  --r:12px;--r2:8px;--font:'DM Sans',sans-serif;--serif:'DM Serif Display',serif;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh}
+.auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.auth-card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:40px;width:100%;max-width:400px}
+.auth-logo{font-family:var(--serif);font-size:28px;color:var(--accent2);margin-bottom:6px}
+.auth-sub{font-size:11px;color:var(--text3);margin-bottom:32px;letter-spacing:1px;text-transform:uppercase}
+.auth-tabs{display:flex;margin-bottom:24px;background:var(--bg3);border-radius:var(--r2);padding:3px}
+.auth-tab{flex:1;padding:8px;text-align:center;font-size:13px;cursor:pointer;border-radius:6px;color:var(--text2);border:none;background:none;font-family:var(--font);transition:all .15s}
+.auth-tab.active{background:var(--bg4);color:var(--text)}
+.auth-error{background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.3);border-radius:var(--r2);padding:10px 14px;font-size:13px;color:var(--coral);margin-bottom:14px;display:none}
+.auth-success{background:rgba(107,203,119,0.1);border:1px solid rgba(107,203,119,0.3);border-radius:var(--r2);padding:10px 14px;font-size:13px;color:var(--green);margin-bottom:14px;display:none}
+.app{display:grid;grid-template-columns:220px 1fr;min-height:100vh;display:none}
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:24px 0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.logo{padding:0 20px 24px;border-bottom:1px solid var(--border);margin-bottom:16px}
+.logo-title{font-family:var(--serif);font-size:20px;color:var(--accent2)}
+.logo-sub{font-size:11px;color:var(--text3);margin-top:2px;letter-spacing:1px;text-transform:uppercase}
+.nav-section{padding:0 12px;margin-bottom:8px}
+.nav-label{font-size:10px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;padding:0 8px;margin-bottom:6px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r2);cursor:pointer;font-size:13.5px;color:var(--text2);transition:all .15s;margin-bottom:2px;border:none;background:none;width:100%;text-align:left}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:var(--bg4);color:var(--accent2)}
+.nav-item .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.nav-item .badge{margin-left:auto;font-size:11px;background:var(--accent);color:#000;border-radius:10px;padding:1px 7px;font-weight:600}
+.sidebar-footer{margin-top:auto;padding:16px 20px 0;border-top:1px solid var(--border)}
+.user-info{font-size:12px;color:var(--text3);margin-bottom:10px;word-break:break-all}
+.user-info strong{display:block;font-size:13px;color:var(--text2);margin-bottom:2px}
+.main{overflow-y:auto;min-height:100vh}
+.page{display:none;padding:32px;animation:fadeIn .2s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.page-header{margin-bottom:28px}
+.page-title{font-family:var(--serif);font-size:28px}
+.page-subtitle{font-size:14px;color:var(--text2);margin-top:4px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:16px}
+.card-title{font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:14px}
+.card-title span{font-size:16px;margin-right:6px}
+.btn{padding:9px 18px;border-radius:var(--r2);font-family:var(--font);font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .15s}
+.btn-primary{background:var(--accent);color:#000}
+.btn-primary:hover{background:var(--accent2)}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--bg3);color:var(--text)}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-export{background:linear-gradient(135deg,#c8a96e,#a07840);color:#000;font-weight:600;display:flex;align-items:center;gap:8px;padding:11px 20px;border-radius:var(--r2);border:none;cursor:pointer;font-family:var(--font);font-size:14px;transition:all .2s}
+.btn-export:hover{opacity:0.9}
+input,textarea,select{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);color:var(--text);font-family:var(--font);font-size:14px;padding:10px 14px;width:100%;outline:none;transition:border .15s}
+input:focus,textarea:focus,select:focus{border-color:var(--accent)}
+select option{background:var(--bg3)}
+textarea{resize:vertical;min-height:80px}
+.input-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.input-group{margin-bottom:12px}
+.input-group label{display:block;font-size:12px;color:var(--text2);margin-bottom:6px}
+.dash-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:14px;margin-bottom:24px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;cursor:pointer;transition:all .2s}
+.stat-card:hover{border-color:var(--border2);transform:translateY(-1px)}
+.stat-icon{font-size:22px;margin-bottom:10px}
+.stat-value{font-size:22px;font-weight:600}
+.stat-label{font-size:12px;color:var(--text2);margin-top:3px}
+.stat-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.progress-bar{height:4px;background:var(--bg4);border-radius:2px;overflow:hidden;margin-top:8px}
+.progress-fill{height:100%;border-radius:2px;transition:width .5s ease}
+.mood-grid{display:flex;gap:10px;flex-wrap:wrap}
+.mood-btn{padding:10px 16px;border-radius:30px;border:1px solid var(--border);background:var(--bg3);cursor:pointer;font-size:20px;transition:all .15s;display:flex;align-items:center;gap:6px}
+.mood-btn span.label{font-size:12px;color:var(--text2)}
+.mood-btn.selected{border-color:var(--accent);background:rgba(200,169,110,0.15)}
+.time-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.time-block{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);padding:12px}
+.time-block .tb-icon{font-size:18px;margin-bottom:6px}
+.time-block .tb-name{font-size:13px;margin-bottom:4px}
+.task-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.task-item:last-child{border-bottom:none}
+.task-check{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--border2);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;font-size:11px}
+.task-check.done{background:var(--accent);border-color:var(--accent)}
+.task-text{flex:1;font-size:14px}
+.task-text.done{text-decoration:line-through;color:var(--text3)}
+.task-tag{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:500}
+.tag-aiesec{background:rgba(167,139,250,0.2);color:var(--purple)}
+.tag-school{background:rgba(78,205,196,0.2);color:var(--teal)}
+.tag-personal{background:rgba(107,203,119,0.2);color:var(--green)}
+.tag-health{background:rgba(255,107,107,0.2);color:var(--coral)}
+.finance-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--border)}
+.finance-row:last-child{border-bottom:none}
+.finance-cat{font-size:14px}
+.finance-cat small{display:block;font-size:11px;color:var(--text3);margin-top:2px}
+.fin-income{color:var(--green);font-size:14px;font-weight:600}
+.fin-expense{color:var(--coral);font-size:14px;font-weight:600}
+.meal-slot-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.meal-slot-name{font-size:13px;font-weight:500;color:var(--accent)}
+.meal-items{display:flex;flex-wrap:wrap;gap:6px}
+.meal-item{background:var(--bg4);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px}
+.meal-item button{background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px}
+.week-chart{display:flex;gap:6px;align-items:flex-end;height:80px;margin-top:10px}
+.week-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.week-bar{width:100%;border-radius:4px 4px 0 0;min-height:4px}
+.week-day{font-size:10px;color:var(--text3)}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;margin-right:5px}
+.sync-dot.syncing{background:var(--accent);animation:pulse .8s infinite}
+.sync-dot.error{background:var(--coral)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+/* Export modal */
+#export-modal{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:300;display:none;align-items:center;justify-content:center;padding:20px}
+#export-modal.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;width:100%;max-width:580px;max-height:90vh;overflow-y:auto}
+.modal-title{font-family:var(--serif);font-size:22px;margin-bottom:6px}
+.modal-sub{font-size:13px;color:var(--text2);margin-bottom:18px;line-height:1.6}
+.export-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);padding:14px;font-size:12px;color:var(--text2);font-family:monospace;line-height:1.7;white-space:pre-wrap;max-height:260px;overflow-y:auto;margin-bottom:14px}
+.copy-ok{display:none;background:rgba(107,203,119,0.12);border:1px solid rgba(107,203,119,0.3);border-radius:var(--r2);padding:10px;font-size:13px;color:var(--green);margin-bottom:12px;text-align:center}
+.steps{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.step{display:flex;align-items:flex-start;gap:10px;padding:10px;background:var(--bg3);border-radius:var(--r2)}
+.step-num{width:22px;height:22px;border-radius:50%;background:var(--accent);color:#000;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.step-text{font-size:13px;color:var(--text2);line-height:1.5}
+.step-text strong{color:var(--text)}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+@media(max-width:640px){
+  .app{grid-template-columns:1fr}
+  .sidebar{height:auto;position:fixed;bottom:0;left:0;right:0;top:auto;flex-direction:row;border-right:none;border-top:1px solid var(--border);padding:8px;z-index:100;overflow-x:auto;overflow-y:hidden}
+  .logo,.sidebar-footer,.nav-label{display:none}
+  .nav-section{padding:0;margin:0;display:flex;gap:4px}
+  .nav-item{padding:8px 10px;flex-direction:column;gap:2px;font-size:10px;min-width:54px}
+  .main{padding-bottom:80px}
+  .page{padding:16px}
+  .input-row{grid-template-columns:1fr}
+  .dash-grid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<!-- ╔══════════════════════════════╗
+     ║  PASTE YOUR KEYS BELOW      ║
+     ╚══════════════════════════════╝ -->
+<script>
+const SUPABASE_URL = 'https://bachttqtazhilidybefg.supabase.co';
+const SUPABASE_KEY = 'sb_publishable__u7iPF8Thopo0WKXNgYyEw_h_aYWX2W';
+</script>
+<!-- ══════════════════════════════ -->
+
+<!-- EXPORT MODAL -->
+<div id="export-modal" onclick="if(event.target===this)closeExport()">
+  <div class="modal">
+    <div class="modal-title">📋 Export my day</div>
+    <div class="modal-sub">Copy your summary → paste in Claude chat → ask anything for free.</div>
+    <div class="steps">
+      <div class="step"><div class="step-num">1</div><div class="step-text"><strong>Copy</strong> the summary below</div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-text"><strong>Paste</strong> it in your Claude.ai chat</div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-text"><strong>Ask</strong> anything — mood, budget, habits, Marrakech trip...</div></div>
+    </div>
+    <div class="export-box" id="export-text"></div>
+    <div class="copy-ok" id="copy-ok">✓ Copied! Paste it in Claude.</div>
+    <div style="display:flex;gap:10px">
+      <button class="btn-export" onclick="copyExport()" style="flex:1;justify-content:center"><span id="copy-icon">📋</span> <span id="copy-label">Copy to clipboard</span></button>
+      <button class="btn btn-ghost" onclick="closeExport()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- AUTH -->
+<div class="auth-screen" id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">Life OS</div>
+    <div class="auth-sub">Your personal assistant</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">Sign in</button>
+      <button class="auth-tab" id="tab-signup" onclick="switchTab('signup')">Create account</button>
+    </div>
+    <div class="auth-error" id="auth-error"></div>
+    <div class="auth-success" id="auth-success"></div>
+    <div class="input-group"><label>Email</label><input type="email" id="auth-email" placeholder="your@email.com" onkeydown="if(event.key==='Enter')authSubmit()"></div>
+    <div class="input-group"><label>Password</label><input type="password" id="auth-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')authSubmit()"></div>
+    <div class="input-group" id="name-group" style="display:none"><label>Your name</label><input type="text" id="auth-name" placeholder="Ocean"></div>
+    <button class="btn btn-primary" style="width:100%;padding:12px;font-size:14px;margin-top:4px" id="auth-btn" onclick="authSubmit()">Sign in</button>
+    <div style="text-align:center;margin-top:14px;font-size:12px;color:var(--text3)">Your data is private — only you can see it.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app" id="app">
+  <nav class="sidebar">
+    <div class="logo"><div class="logo-title">Life OS</div><div class="logo-sub">Your personal assistant</div></div>
+    <div class="nav-section">
+      <div class="nav-label">Overview</div>
+      <button class="nav-item active" onclick="nav('dashboard',this)"><div class="dot" style="background:var(--accent)"></div>Dashboard</button>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Daily</div>
+      <button class="nav-item" onclick="nav('tasks',this)"><div class="dot" style="background:var(--teal)"></div>Tasks<span class="badge" id="task-badge" style="display:none">0</span></button>
+      <button class="nav-item" onclick="nav('mood',this)"><div class="dot" style="background:var(--purple)"></div>Mood & journal</button>
+      <button class="nav-item" onclick="nav('time',this)"><div class="dot" style="background:var(--coral)"></div>Time tracking</button>
+      <button class="nav-item" onclick="nav('food',this)"><div class="dot" style="background:var(--green)"></div>Food & meals</button>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Track</div>
+      <button class="nav-item" onclick="nav('finance',this)"><div class="dot" style="background:var(--accent)"></div>Finances</button>
+      <button class="nav-item" onclick="nav('sport',this)"><div class="dot" style="background:var(--coral)"></div>Sport & social</button>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">AI</div>
+      <button class="nav-item" onclick="nav('ai',this)"><div class="dot" style="background:var(--accent2)"></div>Ask Claude</button>
+    </div>
+    <div class="sidebar-footer">
+      <div class="user-info"><strong id="user-name-display"></strong><span id="user-email-display"></span></div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;font-size:12px;color:var(--text3)">
+        <span class="sync-dot" id="sync-dot"></span><span id="sync-label">Loading...</span>
+      </div>
+      <button class="btn btn-ghost btn-sm" style="width:100%" onclick="signOut()">Sign out</button>
+    </div>
+  </nav>
+
+  <main class="main">
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
+          <div><div class="page-title" id="dash-greeting">Good morning ☀️</div><div class="page-subtitle" id="dash-date"></div></div>
+          <button class="btn-export" onclick="openExport()">✨ Ask Claude about my day</button>
+        </div>
+      </div>
+      <div class="dash-grid" id="dash-stats"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="card"><div class="card-title"><span>📋</span>Today's tasks</div><div id="dash-tasks-preview"></div><button class="btn btn-ghost btn-sm" style="margin-top:12px;width:100%" onclick="nav('tasks',null)">View all →</button></div>
+        <div class="card"><div class="card-title"><span>📊</span>Mood this week</div><div class="week-chart" id="week-chart"></div></div>
+      </div>
+      <div class="card" style="margin-top:16px"><div class="card-title"><span>✨</span>Daily insight</div><div id="dash-insight" style="font-size:14px;color:var(--text2);line-height:1.8"></div></div>
+    </div>
+
+    <!-- TASKS -->
+    <div class="page" id="page-tasks">
+      <div class="page-header"><div class="page-title">Tasks</div><div class="page-subtitle">Stay on top of everything</div></div>
+      <div class="card">
+        <div class="input-row">
+          <div class="input-group" style="margin:0"><label>Task</label><input type="text" id="task-input" placeholder="Add a task..." onkeydown="if(event.key==='Enter')addTask()"></div>
+          <div class="input-group" style="margin:0"><label>Category</label><select id="task-cat"><option value="personal">Personal</option><option value="aiesec">AIESEC</option><option value="school">School</option><option value="health">Health</option></select></div>
+        </div>
+        <button class="btn btn-primary" onclick="addTask()">Add task</button>
+      </div>
+      <div class="card"><div id="task-list"><div style="color:var(--text3);font-size:14px;padding:8px 0">Loading...</div></div></div>
+    </div>
+
+    <!-- MOOD -->
+    <div class="page" id="page-mood">
+      <div class="page-header"><div class="page-title">Mood & journal</div><div class="page-subtitle">How are you feeling today?</div></div>
+      <div class="card">
+        <div class="card-title"><span>💭</span>Today's mood</div>
+        <div class="mood-grid">
+          <button class="mood-btn" onclick="selectMood(5,'🌟','Amazing',this)"><span>🌟</span><span class="label">Amazing</span></button>
+          <button class="mood-btn" onclick="selectMood(4,'😊','Good',this)"><span>😊</span><span class="label">Good</span></button>
+          <button class="mood-btn" onclick="selectMood(3,'😐','Okay',this)"><span>😐</span><span class="label">Okay</span></button>
+          <button class="mood-btn" onclick="selectMood(2,'😔','Low',this)"><span>😔</span><span class="label">Low</span></button>
+          <button class="mood-btn" onclick="selectMood(1,'😩','Rough',this)"><span>😩</span><span class="label">Rough</span></button>
+        </div>
+        <div style="margin-top:14px;font-size:13px;color:var(--text2)" id="mood-selected">No mood selected.</div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span>✍️</span>Journal</div>
+        <textarea id="journal-input" placeholder="How was your day? What's on your mind?" style="margin-bottom:12px"></textarea>
+        <div class="input-group"><label>Energy: <span id="energy-val">5</span>/10</label><input type="range" min="1" max="10" value="5" id="energy-input" style="padding:4px 0;background:transparent;border:none" oninput="document.getElementById('energy-val').textContent=this.value"></div>
+        <button class="btn btn-primary" onclick="saveMood()">Save entry</button>
+      </div>
+      <div class="card"><div class="card-title"><span>📅</span>Past entries</div><div id="mood-history"></div></div>
+    </div>
+
+    <!-- TIME -->
+    <div class="page" id="page-time">
+      <div class="page-header"><div class="page-title">Time tracking</div><div class="page-subtitle">See where your hours go</div></div>
+      <div class="card"><div class="card-title"><span>⏱️</span>Log today's hours</div><div class="time-grid" id="time-grid"></div><button class="btn btn-primary" style="margin-top:16px" id="save-time-btn" onclick="saveTime()">Save</button></div>
+      <div class="card"><div class="card-title"><span>📊</span>Breakdown</div><div id="time-chart"></div></div>
+    </div>
+
+    <!-- FOOD -->
+    <div class="page" id="page-food">
+      <div class="page-header"><div class="page-title">Food & meals</div><div class="page-subtitle">Plan your ftour and track what you eat</div></div>
+      <div id="meal-slots"></div>
+      <div class="card">
+        <div class="card-title"><span>🛒</span>Grocery list</div>
+        <div style="display:flex;gap:10px;margin-bottom:12px"><input type="text" id="grocery-input" placeholder="Add item..." onkeydown="if(event.key==='Enter')addGrocery()" style="flex:1"><button class="btn btn-primary" onclick="addGrocery()">Add</button></div>
+        <div id="grocery-list"></div>
+      </div>
+    </div>
+
+    <!-- FINANCE -->
+    <div class="page" id="page-finance">
+      <div class="page-header"><div class="page-title">Finances</div><div class="page-subtitle">Track spending in MAD</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px">
+        <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-value" id="fin-balance">0 MAD</div><div class="stat-label">Balance</div></div>
+        <div class="stat-card"><div class="stat-icon">📈</div><div class="stat-value fin-income" id="fin-income">0 MAD</div><div class="stat-label">Income</div></div>
+        <div class="stat-card"><div class="stat-icon">📉</div><div class="stat-value fin-expense" id="fin-expense">0 MAD</div><div class="stat-label">Expenses</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span>➕</span>Add transaction</div>
+        <div class="input-row">
+          <div class="input-group" style="margin:0"><label>Description</label><input type="text" id="fin-desc" placeholder="e.g. Groceries..."></div>
+          <div class="input-group" style="margin:0"><label>Amount (MAD)</label><input type="number" id="fin-amount" placeholder="0"></div>
+        </div>
+        <div class="input-row">
+          <div class="input-group" style="margin:0"><label>Type</label><select id="fin-type"><option value="expense">Expense</option><option value="income">Income</option></select></div>
+          <div class="input-group" style="margin:0"><label>Category</label><select id="fin-cat"><option>Food</option><option>Transport</option><option>Shopping</option><option>Health</option><option>AIESEC</option><option>Other</option></select></div>
+        </div>
+        <button class="btn btn-primary" onclick="addTransaction()">Add</button>
+      </div>
+      <div class="card"><div class="card-title"><span>📋</span>Transactions</div><div id="fin-list"></div></div>
+    </div>
+
+    <!-- SPORT -->
+    <div class="page" id="page-sport">
+      <div class="page-header"><div class="page-title">Sport & social</div><div class="page-subtitle">Track workouts and social time</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="card">
+          <div class="card-title"><span>🏃</span>Log workout</div>
+          <div class="input-group"><label>Type</label><select id="sport-type"><option>Run</option><option>Gym</option><option>Football</option><option>Walk</option><option>Yoga</option><option>Other</option></select></div>
+          <div class="input-group"><label>Duration (min)</label><input type="number" id="sport-dur" placeholder="30"></div>
+          <div class="input-group"><label>Notes</label><input type="text" id="sport-notes" placeholder="How did it feel?"></div>
+          <button class="btn btn-primary" onclick="logSport()">Log</button>
+        </div>
+        <div class="card">
+          <div class="card-title"><span>👥</span>Log social</div>
+          <div class="input-group"><label>Who with?</label><input type="text" id="social-who" placeholder="Friends, AIESEC..."></div>
+          <div class="input-group"><label>Activity</label><input type="text" id="social-what" placeholder="Café, call, ftour..."></div>
+          <div class="input-group"><label>Duration (min)</label><input type="number" id="social-dur" placeholder="60"></div>
+          <button class="btn btn-primary" onclick="logSocial()">Log</button>
+        </div>
+      </div>
+      <div class="card"><div class="card-title"><span>📅</span>Activity log</div><div id="activity-log"></div></div>
+    </div>
+
+    <!-- ASK CLAUDE -->
+    <div class="page" id="page-ai">
+      <div class="page-header"><div class="page-title">Ask Claude</div><div class="page-subtitle">Export your data and get real AI analysis — free</div></div>
+      <div class="card" style="border-color:rgba(200,169,110,0.3);background:rgba(200,169,110,0.05)">
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px">
+            <div style="font-size:15px;font-weight:500;margin-bottom:6px">How it works</div>
+            <div style="font-size:13px;color:var(--text2);line-height:1.7">Click Export → copy your summary → paste in Claude chat → ask anything. Free, no API key needed.</div>
+          </div>
+          <button class="btn-export" onclick="openExport()">✨ Export my day</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span>💡</span>Suggested questions</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" id="prompt-grid"></div>
+        <div style="font-size:12px;color:var(--text3);margin-top:10px">Click any to copy, then paste after your data in Claude</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const {createClient} = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+const TODAY = new Date().toISOString().split('T')[0];
+let currentUser = null, selectedMood = null;
+let C = {tasks:[],mood:[],timeLog:{},meals:{Sahour:[],Ftour:[],Dinner:[],Snack:[]},groceries:[],transactions:[],activities:[]};
+const TIME_CATS=[{key:'work',icon:'💼',name:'Work/AIESEC'},{key:'study',icon:'📚',name:'Study'},{key:'scroll',icon:'📱',name:'Scrolling'},{key:'sport',icon:'🏃',name:'Sport'},{key:'social',icon:'👥',name:'Social'},{key:'sleep',icon:'😴',name:'Sleep'},{key:'food',icon:'🍽️',name:'Food/Prayer'},{key:'other',icon:'✨',name:'Other'}];
+
+// AUTH
+let authMode='login';
+function switchTab(m){authMode=m;document.getElementById('tab-login').classList.toggle('active',m==='login');document.getElementById('tab-signup').classList.toggle('active',m==='signup');document.getElementById('auth-btn').textContent=m==='login'?'Sign in':'Create account';document.getElementById('name-group').style.display=m==='signup'?'block':'none';document.getElementById('auth-error').style.display='none';document.getElementById('auth-success').style.display='none';}
+async function authSubmit(){
+  const email=document.getElementById('auth-email').value.trim(),password=document.getElementById('auth-password').value,btn=document.getElementById('auth-btn');
+  document.getElementById('auth-error').style.display='none';document.getElementById('auth-success').style.display='none';
+  if(!email||!password){showAuthErr('Please fill in all fields');return;}
+  btn.textContent='Please wait...';btn.disabled=true;
+  if(authMode==='login'){
+    const{error}=await db.auth.signInWithPassword({email,password});
+    if(error){showAuthErr(error.message);btn.textContent='Sign in';btn.disabled=false;}
+  }else{
+    const name=document.getElementById('auth-name').value.trim()||'User';
+    const{data,error}=await db.auth.signUp({email,password,options:{data:{name}}});
+    if(error){showAuthErr(error.message);btn.textContent='Create account';btn.disabled=false;}
+    else if(data.user&&!data.session){const s=document.getElementById('auth-success');s.textContent='✓ Check your email to confirm, then sign in.';s.style.display='block';btn.textContent='Create account';btn.disabled=false;}
+  }
+}
+function showAuthErr(m){const e=document.getElementById('auth-error');e.textContent=m;e.style.display='block';}
+async function signOut(){try{await db.auth.signOut();}catch(e){}currentUser=null;C={tasks:[],mood:[],timeLog:{},meals:{Sahour:[],Ftour:[],Dinner:[],Snack:[]},groceries:[],transactions:[],activities:[]};document.getElementById("auth-screen").style.display="flex";document.getElementById("app").style.display="none";document.getElementById("auth-email").value="";document.getElementById("auth-password").value="";}
+
+db.auth.onAuthStateChange(async(event,session)=>{
+  if(session?.user){
+    currentUser=session.user;
+    document.getElementById('auth-screen').style.display='none';
+    document.getElementById('app').style.display='grid';
+    const name=session.user.user_metadata?.name||session.user.email.split('@')[0];
+    document.getElementById('user-name-display').textContent=name;
+    document.getElementById('user-email-display').textContent=session.user.email;
+    setupDate();await loadAll();renderDashboard();updateBadge();renderPrompts();
+  }else{
+    currentUser=null;
+    document.getElementById('auth-screen').style.display='flex';
+    document.getElementById('app').style.display='none';
+  }
+});
+
+// SYNC
+function setSyncing(){document.getElementById('sync-dot').className='sync-dot syncing';document.getElementById('sync-label').textContent='Saving...';}
+function setSynced(){document.getElementById('sync-dot').className='sync-dot';document.getElementById('sync-label').textContent='Synced';}
+function setSyncErr(){document.getElementById('sync-dot').className='sync-dot error';document.getElementById('sync-label').textContent='Sync error';}
+
+// LOAD
+async function loadAll(){
+  if(!currentUser)return;
+  const uid=currentUser.id;setSyncing();
+  try{
+    const[t,m,tl,me,g,tr,a]=await Promise.all([
+      db.from('tasks').select('*').eq('user_id',uid).eq('date',TODAY),
+      db.from('mood').select('*').eq('user_id',uid).order('created_at',{ascending:false}).limit(14),
+      db.from('time_logs').select('*').eq('user_id',uid).eq('date',TODAY).maybeSingle(),
+      db.from('meals').select('*').eq('user_id',uid),
+      db.from('groceries').select('*').eq('user_id',uid),
+      db.from('transactions').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
+      db.from('activities').select('*').eq('user_id',uid).order('created_at',{ascending:false}).limit(20),
+    ]);
+    C.tasks=t.data||[];C.mood=m.data||[];C.timeLog=tl.data||{};
+    C.meals={Sahour:[],Ftour:[],Dinner:[],Snack:[]};
+    (me.data||[]).forEach(r=>{if(C.meals[r.slot])C.meals[r.slot].push({id:r.id,item:r.item});});
+    C.groceries=g.data||[];C.transactions=tr.data||[];C.activities=a.data||[];
+    setSynced();
+  }catch(e){setSyncErr();}
+}
+
+// NAV
+function nav(page,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  if(btn)btn.classList.add('active');
+  ({dashboard:renderDashboard,tasks:renderTasks,mood:renderMood,time:renderTime,food:renderFood,finance:renderFinance,sport:renderActivity})[page]?.();
+}
+
+function setupDate(){
+  const d=new Date(),days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],h=d.getHours();
+  document.getElementById('dash-greeting').textContent=h<12?'Good morning ☀️':h<17?'Good afternoon 🌤️':'Good evening 🌙';
+  document.getElementById('dash-date').textContent=`${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} — Ramadan 2026`;
+}
+
+// TASKS
+async function addTask(){const v=document.getElementById('task-input').value.trim();if(!v)return;const row={user_id:currentUser.id,text:v,category:document.getElementById('task-cat').value,done:false,date:TODAY};setSyncing();const{data,error}=await db.from('tasks').insert(row).select().single();if(!error){C.tasks.push(data);document.getElementById('task-input').value='';setSynced();}else setSyncErr();renderTasks();updateBadge();}
+async function toggleTask(id){const t=C.tasks.find(t=>t.id===id);if(!t)return;t.done=!t.done;setSyncing();const{error}=await db.from('tasks').update({done:t.done}).eq('id',id);error?setSyncErr():setSynced();renderTasks();updateBadge();}
+async function deleteTask(id){C.tasks=C.tasks.filter(t=>t.id!==id);setSyncing();const{error}=await db.from('tasks').delete().eq('id',id);error?setSyncErr():setSynced();renderTasks();updateBadge();}
+function renderTasks(){const el=document.getElementById('task-list');if(!el)return;const today=C.tasks.filter(t=>t.date===TODAY);if(!today.length){el.innerHTML='<div style="color:var(--text3);font-size:14px;padding:12px 0">No tasks yet. Add one above!</div>';return;}el.innerHTML=today.map(t=>`<div class="task-item"><div class="task-check ${t.done?'done':''}" onclick="toggleTask(${t.id})">${t.done?'✓':''}</div><span class="task-text ${t.done?'done':''}">${t.text}</span><span class="task-tag tag-${t.category}">${t.category}</span><button onclick="deleteTask(${t.id})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;line-height:1">×</button></div>`).join('');}
+function updateBadge(){const n=C.tasks.filter(t=>t.date===TODAY&&!t.done).length;const b=document.getElementById('task-badge');b.textContent=n;b.style.display=n?'':'none';}
+
+// MOOD
+function selectMood(score,emoji,label,btn){selectedMood={score,emoji,label};document.querySelectorAll('.mood-btn').forEach(b=>b.classList.remove('selected'));btn.classList.add('selected');document.getElementById('mood-selected').innerHTML=`Selected: ${emoji} <strong>${label}</strong>`;}
+async function saveMood(){
+  if(!selectedMood){alert('Pick a mood first');return;}
+  const row={user_id:currentUser.id,date:TODAY,...selectedMood,energy:parseInt(document.getElementById('energy-input').value),journal:document.getElementById('journal-input').value};
+  setSyncing();
+  const existing=C.mood.find(m=>m.date===TODAY);
+  const result=existing?await db.from('mood').update(row).eq('id',existing.id).select().single():await db.from('mood').insert(row).select().single();
+  if(!result.error){if(existing){const i=C.mood.findIndex(m=>m.date===TODAY);C.mood[i]=result.data;}else C.mood.unshift(result.data);setSynced();}else setSyncErr();
+  document.getElementById('journal-input').value='';selectedMood=null;document.querySelectorAll('.mood-btn').forEach(b=>b.classList.remove('selected'));document.getElementById('mood-selected').textContent='✓ Saved!';renderMood();
+}
+function renderMood(){const el=document.getElementById('mood-history');if(!el)return;const s=C.mood.slice(0,7);if(!s.length){el.innerHTML='<div style="color:var(--text3);font-size:14px">No entries yet.</div>';return;}el.innerHTML=s.map(m=>`<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)"><span style="font-size:22px">${m.emoji}</span><div style="flex:1"><div style="font-size:13px;font-weight:500">${m.label} · Energy ${m.energy}/10</div><div style="font-size:12px;color:var(--text3)">${m.date}${m.journal?' · "'+m.journal.slice(0,60)+(m.journal.length>60?'…':'')+'"':''}</div></div></div>`).join('');}
+
+// TIME
+function renderTime(){const el=document.getElementById('time-grid');if(!el)return;const d=C.timeLog||{};el.innerHTML=TIME_CATS.map(c=>`<div class="time-block"><div class="tb-icon">${c.icon}</div><div class="tb-name">${c.name}</div><input type="number" min="0" max="24" step="0.5" value="${d[c.key]||''}" placeholder="hrs" id="tc-${c.key}" style="padding:6px 8px;font-size:13px"></div>`).join('');renderTimeChart();}
+async function saveTime(){const d={user_id:currentUser.id,date:TODAY};TIME_CATS.forEach(c=>{const v=parseFloat(document.getElementById('tc-'+c.key)?.value)||0;d[c.key]=v;});setSyncing();const existing=C.timeLog?.id;const result=existing?await db.from('time_logs').update(d).eq('id',existing).select().single():await db.from('time_logs').insert(d).select().single();if(!result.error){C.timeLog=result.data;setSynced();}else setSyncErr();renderTimeChart();const btn=document.getElementById('save-time-btn');if(btn){btn.textContent='Saved ✓';setTimeout(()=>btn.textContent='Save',1500);}}
+function renderTimeChart(){const el=document.getElementById('time-chart');if(!el)return;const d=C.timeLog||{};const total=TIME_CATS.reduce((a,c)=>a+(d[c.key]||0),0)||1;const cols=['var(--accent)','var(--teal)','var(--coral)','var(--green)','var(--purple)','#60a5fa','#f472b6','var(--text3)'];el.innerHTML=TIME_CATS.map((c,i)=>{const v=d[c.key]||0;const pct=Math.round(v/total*100);return`<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="width:18px;font-size:14px">${c.icon}</span><span style="font-size:13px;width:110px;color:var(--text2)">${c.name}</span><div style="flex:1;background:var(--bg4);border-radius:3px;height:6px"><div style="width:${pct}%;background:${cols[i]};height:6px;border-radius:3px;transition:width .5s"></div></div><span style="font-size:12px;color:var(--text3);width:36px;text-align:right">${v}h</span></div>`;}).join('');}
+
+// FOOD
+function renderFood(){const el=document.getElementById('meal-slots');if(!el)return;el.innerHTML=[{key:'Sahour',label:'⭐ Sahour'},{key:'Ftour',label:'🌙 Ftour (Iftar)'},{key:'Dinner',label:'🍽️ Dinner'},{key:'Snack',label:'🍎 Snack'}].map(s=>`<div class="card"><div class="meal-slot-header"><span class="meal-slot-name">${s.label}</span><div style="display:flex;gap:6px"><input type="text" id="food-inp-${s.key}" placeholder="Add food..." style="width:170px;padding:6px 10px;font-size:12px" onkeydown="if(event.key==='Enter')addFood('${s.key}')"><button class="btn btn-primary btn-sm" onclick="addFood('${s.key}')">+</button></div></div><div class="meal-items">${(C.meals[s.key]||[]).map(item=>`<div class="meal-item">${item.item}<button onclick="removeFood(${item.id},'${s.key}')">×</button></div>`).join('')}${!(C.meals[s.key]||[]).length?'<span style="font-size:12px;color:var(--text3)">Nothing added yet</span>':''}</div></div>`).join('');renderGroceries();}
+async function addFood(slot){const inp=document.getElementById('food-inp-'+slot);const v=inp?.value.trim();if(!v)return;setSyncing();const{data,error}=await db.from('meals').insert({user_id:currentUser.id,slot,item:v,date:TODAY}).select().single();if(!error){if(!C.meals[slot])C.meals[slot]=[];C.meals[slot].push({id:data.id,item:v});inp.value='';setSynced();}else setSyncErr();renderFood();}
+async function removeFood(id,slot){C.meals[slot]=C.meals[slot].filter(i=>i.id!==id);setSyncing();const{error}=await db.from('meals').delete().eq('id',id);error?setSyncErr():setSynced();renderFood();}
+async function addGrocery(){const v=document.getElementById('grocery-input').value.trim();if(!v)return;setSyncing();const{data,error}=await db.from('groceries').insert({user_id:currentUser.id,text:v,done:false}).select().single();if(!error){C.groceries.push(data);document.getElementById('grocery-input').value='';setSynced();}else setSyncErr();renderGroceries();}
+async function toggleGrocery(id){const g=C.groceries.find(g=>g.id===id);if(!g)return;g.done=!g.done;setSyncing();const{error}=await db.from('groceries').update({done:g.done}).eq('id',id);error?setSyncErr():setSynced();renderGroceries();}
+async function deleteGrocery(id){C.groceries=C.groceries.filter(g=>g.id!==id);setSyncing();const{error}=await db.from('groceries').delete().eq('id',id);error?setSyncErr():setSynced();renderGroceries();}
+function renderGroceries(){const el=document.getElementById('grocery-list');if(!el)return;if(!C.groceries.length){el.innerHTML='<div style="color:var(--text3);font-size:13px">Empty.</div>';return;}el.innerHTML=C.groceries.map(g=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><div class="task-check ${g.done?'done':''}" onclick="toggleGrocery(${g.id})">${g.done?'✓':''}</div><span style="font-size:14px;${g.done?'text-decoration:line-through;color:var(--text3)':''}">${g.text}</span><button onclick="deleteGrocery(${g.id})" style="background:none;border:none;color:var(--text3);cursor:pointer;margin-left:auto;font-size:16px">×</button></div>`).join('');}
+
+// FINANCE
+async function addTransaction(){const desc=document.getElementById('fin-desc').value.trim(),amount=parseFloat(document.getElementById('fin-amount').value);if(!desc||!amount)return;setSyncing();const{data,error}=await db.from('transactions').insert({user_id:currentUser.id,description:desc,amount,type:document.getElementById('fin-type').value,category:document.getElementById('fin-cat').value,date:TODAY}).select().single();if(!error){C.transactions.unshift(data);document.getElementById('fin-desc').value='';document.getElementById('fin-amount').value='';setSynced();}else setSyncErr();renderFinance();}
+async function deleteTransaction(id){C.transactions=C.transactions.filter(t=>t.id!==id);setSyncing();const{error}=await db.from('transactions').delete().eq('id',id);error?setSyncErr():setSynced();renderFinance();}
+function renderFinance(){const inc=C.transactions.filter(t=>t.type==='income').reduce((a,t)=>a+t.amount,0),exp=C.transactions.filter(t=>t.type==='expense').reduce((a,t)=>a+t.amount,0);document.getElementById('fin-balance').textContent=(inc-exp).toFixed(0)+' MAD';document.getElementById('fin-income').textContent=inc.toFixed(0)+' MAD';document.getElementById('fin-expense').textContent=exp.toFixed(0)+' MAD';const el=document.getElementById('fin-list');if(!el)return;if(!C.transactions.length){el.innerHTML='<div style="color:var(--text3);font-size:14px">No transactions yet.</div>';return;}el.innerHTML=C.transactions.map(t=>`<div class="finance-row"><div class="finance-cat">${t.description}<small>${t.category} · ${t.date}</small></div><div style="display:flex;align-items:center;gap:10px"><span class="${t.type==='income'?'fin-income':'fin-expense'}">${t.type==='income'?'+':'-'}${t.amount} MAD</span><button onclick="deleteTransaction(${t.id})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px">×</button></div></div>`).join('');}
+
+// SPORT
+async function logSport(){const dur=document.getElementById('sport-dur').value;if(!dur)return;setSyncing();const{data,error}=await db.from('activities').insert({user_id:currentUser.id,kind:'sport',type:document.getElementById('sport-type').value,duration:parseInt(dur),notes:document.getElementById('sport-notes').value,date:TODAY}).select().single();if(!error){C.activities.unshift(data);document.getElementById('sport-dur').value='';document.getElementById('sport-notes').value='';setSynced();}else setSyncErr();renderActivity();}
+async function logSocial(){const who=document.getElementById('social-who').value.trim();if(!who)return;setSyncing();const{data,error}=await db.from('activities').insert({user_id:currentUser.id,kind:'social',who,what:document.getElementById('social-what').value,duration:parseInt(document.getElementById('social-dur').value)||0,date:TODAY}).select().single();if(!error){C.activities.unshift(data);document.getElementById('social-who').value='';document.getElementById('social-what').value='';document.getElementById('social-dur').value='';setSynced();}else setSyncErr();renderActivity();}
+async function deleteActivity(id){C.activities=C.activities.filter(a=>a.id!==id);setSyncing();const{error}=await db.from('activities').delete().eq('id',id);error?setSyncErr():setSynced();renderActivity();}
+function renderActivity(){const el=document.getElementById('activity-log');if(!el)return;if(!C.activities.length){el.innerHTML='<div style="color:var(--text3);font-size:14px">No activities yet.</div>';return;}el.innerHTML=C.activities.slice(0,10).map(a=>a.kind==='sport'?`<div class="finance-row"><div class="finance-cat">🏃 ${a.type}<small>${a.duration} min${a.notes?' · '+a.notes:''} · ${a.date}</small></div><button onclick="deleteActivity(${a.id})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px">×</button></div>`:`<div class="finance-row"><div class="finance-cat">👥 With ${a.who}<small>${a.what||''}${a.duration?' · '+a.duration+'min':''} · ${a.date}</small></div><button onclick="deleteActivity(${a.id})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px">×</button></div>`).join('');}
+
+// DASHBOARD
+function renderDashboard(){
+  const todayTasks=C.tasks.filter(t=>t.date===TODAY),done=todayTasks.filter(t=>t.done).length,moodToday=C.mood.find(m=>m.date===TODAY),scroll=C.timeLog?.scroll||0,sportToday=C.activities.filter(a=>a.kind==='sport'&&a.date===TODAY).length,expense=C.transactions.filter(t=>t.type==='expense').reduce((a,t)=>a+t.amount,0);
+  document.getElementById('dash-stats').innerHTML=`<div class="stat-card" onclick="nav('tasks',null)"><div class="stat-icon">📋</div><div class="stat-value">${done}/${todayTasks.length}</div><div class="stat-label">Tasks done</div><div class="progress-bar"><div class="progress-fill" style="width:${todayTasks.length?done/todayTasks.length*100:0}%;background:var(--teal)"></div></div></div><div class="stat-card" onclick="nav('mood',null)"><div class="stat-icon">${moodToday?moodToday.emoji:'💭'}</div><div class="stat-value">${moodToday?moodToday.label:'—'}</div><div class="stat-label">Today's mood</div></div><div class="stat-card" onclick="nav('time',null)"><div class="stat-icon">📱</div><div class="stat-value">${scroll}h</div><div class="stat-label">Scrolling</div><div class="stat-sub">${scroll>3?'⚠️ High':'✓ Ok'}</div></div><div class="stat-card" onclick="nav('sport',null)"><div class="stat-icon">🏃</div><div class="stat-value">${sportToday}</div><div class="stat-label">Workouts</div></div><div class="stat-card" onclick="nav('finance',null)"><div class="stat-icon">💸</div><div class="stat-value">${expense.toFixed(0)}</div><div class="stat-label">MAD spent</div></div>`;
+  document.getElementById('dash-tasks-preview').innerHTML=todayTasks.slice(0,3).map(t=>`<div class="task-item" style="padding:8px 0"><div class="task-check ${t.done?'done':''}" onclick="toggleTask(${t.id});renderDashboard()">${t.done?'✓':''}</div><span class="task-text ${t.done?'done':''}" style="font-size:13px">${t.text}</span></div>`).join('')||'<div style="color:var(--text3);font-size:13px">No tasks today</div>';
+  const days=['Su','Mo','Tu','We','Th','Fr','Sa'],now=new Date();
+  document.getElementById('week-chart').innerHTML=Array.from({length:7},(_,i)=>{const d=new Date(now);d.setDate(d.getDate()-(6-i));const key=d.toISOString().split('T')[0];const m=C.mood.find(e=>e.date===key);const h=m?m.score*15:4;const col=m?['var(--coral)','var(--coral)','var(--accent)','var(--teal)','var(--green)'][m.score-1]:'var(--bg4)';return`<div class="week-bar-wrap"><div class="week-bar" style="height:${h}px;background:${col}"></div><div class="week-day">${days[d.getDay()]}</div></div>`;}).join('');
+  const parts=[];
+  if(!moodToday)parts.push('💭 Mood not logged yet today.');else if(moodToday.score<=2)parts.push('💙 Rough day — rest is valid during Ramadan.');else if(moodToday.score>=4)parts.push(`🌟 Feeling ${moodToday.label.toLowerCase()} — protect that energy.`);
+  if(scroll>=3)parts.push(`📱 ${scroll}h of scrolling today.`);
+  if(!sportToday)parts.push('🏃 No workout yet — 20 min after ftour counts.');
+  if(todayTasks.length&&done===todayTasks.length)parts.push('✅ All tasks done!');else if(todayTasks.length)parts.push(`📋 ${todayTasks.length-done} task${todayTasks.length-done>1?'s':''} pending.`);
+  if(!parts.length)parts.push('Start logging your day to see insights here.');
+  parts.push(`<br><span style="color:var(--accent);cursor:pointer;font-size:13px" onclick="openExport()">✨ Export your day and ask Claude for deeper analysis →</span>`);
+  document.getElementById('dash-insight').innerHTML=parts.map(p=>`<div style="margin-bottom:6px">${p}</div>`).join('');
+}
+
+// EXPORT
+function buildExportText(){
+  const todayTasks=C.tasks.filter(t=>t.date===TODAY),moodToday=C.mood.find(m=>m.date===TODAY),d=C.timeLog||{},inc=C.transactions.filter(t=>t.type==='income').reduce((a,t)=>a+t.amount,0),exp=C.transactions.filter(t=>t.type==='expense').reduce((a,t)=>a+t.amount,0),name=document.getElementById('user-name-display').textContent;
+  return `━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MY LIFE OS DATA — ${TODAY}
+(${name} · Student @ Mines UM6P · AIESEC member · Ramadan 2026)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 TASKS TODAY (${todayTasks.filter(t=>t.done).length}/${todayTasks.length} done)
+${todayTasks.length?todayTasks.map(t=>`${t.done?'[✓]':'[ ]'} ${t.text} (${t.category})`).join('\n'):'No tasks logged'}
+
+💭 MOOD TODAY
+${moodToday?(moodToday.emoji+' '+moodToday.label+' · Energy '+moodToday.energy+'/10'+(moodToday.journal?'\nJournal: "'+moodToday.journal+'"':'')):'Not logged yet'}
+
+📅 MOOD HISTORY (last 7)
+${C.mood.slice(0,7).map(m=>`${m.date}: ${m.emoji} ${m.label} (${m.score}/5) · energy ${m.energy}/10`).join('\n')||'No entries'}
+
+⏱️ TIME TODAY
+${TIME_CATS.filter(c=>d[c.key]).map(c=>`${c.name}: ${d[c.key]}h`).join('\n')||'Not logged'}
+
+🍽️ FOOD
+Sahour: ${(C.meals.Sahour||[]).map(i=>i.item).join(', ')||'not logged'}
+Ftour: ${(C.meals.Ftour||[]).map(i=>i.item).join(', ')||'not logged'}
+Dinner: ${(C.meals.Dinner||[]).map(i=>i.item).join(', ')||'not logged'}
+Grocery list: ${C.groceries.filter(g=>!g.done).map(g=>g.text).join(', ')||'none'}
+
+💰 FINANCES
+Income: +${inc} MAD | Expenses: -${exp} MAD | Balance: ${inc-exp} MAD
+Recent: ${C.transactions.slice(0,6).map(t=>`${t.type==='income'?'+':'-'}${t.amount}MAD ${t.description}`).join(', ')||'none'}
+
+🏃 SPORT & SOCIAL
+${C.activities.slice(0,8).map(a=>a.kind==='sport'?`${a.date}: ${a.type} ${a.duration}min`:`${a.date}: social with ${a.who} (${a.what||''})`).join('\n')||'No activities logged'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Ask me anything based on this data!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+}
+function openExport(){document.getElementById('export-text').textContent=buildExportText();document.getElementById('export-modal').classList.add('open');document.getElementById('copy-ok').style.display='none';document.getElementById('copy-label').textContent='Copy to clipboard';document.getElementById('copy-icon').textContent='📋';}
+function closeExport(){document.getElementById('export-modal').classList.remove('open');}
+async function copyExport(){try{await navigator.clipboard.writeText(document.getElementById('export-text').textContent);document.getElementById('copy-ok').style.display='block';document.getElementById('copy-label').textContent='Copied!';document.getElementById('copy-icon').textContent='✓';setTimeout(()=>{document.getElementById('copy-label').textContent='Copy to clipboard';document.getElementById('copy-icon').textContent='📋';},3000);}catch(e){document.getElementById('copy-ok').textContent='Select the text above and copy with Ctrl+C';document.getElementById('copy-ok').style.display='block';}}
+
+// PROMPTS
+function renderPrompts(){const prompts=[['📊','Analyze my week — what patterns do you see?'],['📱','Where am I wasting the most time?'],['💭','How has my mood been and what might be affecting it?'],['🎯','What should I focus on for the next 3 days?'],['💰','Give me a budget breakdown and advice'],['🌴','Help me plan my Marrakech trip next Thursday'],['🌙','Plan my ftour menu for the rest of Ramadan'],['📈','What habits should I build based on my data?']];document.getElementById('prompt-grid').innerHTML=prompts.map(([e,t])=>`<div style="background:var(--bg3);border-radius:var(--r2);padding:12px;font-size:13px;color:var(--text2);cursor:pointer;border:1px solid var(--border);transition:border .15s" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'" onclick="copyPrompt('${t.replace(/'/g,"\\'")}')"><span style="margin-right:6px">${e}</span>${t}</div>`).join('');}
+async function copyPrompt(text){try{await navigator.clipboard.writeText(text);alert('Copied! Paste it in Claude after your data export.');}catch(e){alert('Copy this:\n\n'+text);}}
+</script>
+</body>
+</html>
